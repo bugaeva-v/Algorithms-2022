@@ -8,6 +8,13 @@ import org.jetbrains.annotations.Nullable;
 // attention: Comparable is supported but Comparator is not
 public class BinarySearchTree<T extends Comparable<T>> extends AbstractSet<T> implements CheckableSortedSet<T> {
 
+    BinarySearchTree() {}
+    BinarySearchTree(BinarySearchTree<T> tree, T start, T end) {
+        root = tree.root;
+        nodeStart = start;
+        nodeEnd = end;
+    }
+
     private static class Node<T> {
         final T value;
         Node<T> prev = null;
@@ -24,8 +31,35 @@ public class BinarySearchTree<T extends Comparable<T>> extends AbstractSet<T> im
 
     private int size = 0;
 
+    private T nodeStart =null;
+    private T nodeEnd =null;
+
     @Override
     public int size() {
+        /*int size = 0;
+        Node<T> n = root;
+        while (n.left!=null) {
+            n = n.left;
+            while (n.right!=null) {
+                n = n.right;
+            }
+
+        }
+
+
+        while (n.left!=null) {
+            while (n.prev.right == n) {
+                n=n.prev;
+            }
+            n = n.left;
+        }
+
+        Iterator<T> it = iterator();
+
+        while (it.hasNext()) {
+            it.next();
+            size++;
+        }*/
         return size;
     }
 
@@ -40,14 +74,33 @@ public class BinarySearchTree<T extends Comparable<T>> extends AbstractSet<T> im
             return start;
         }
         else if (comparison < 0) {
-            if (start.left == null) return start;
+            if (start.left == null)
+                return start;
             return find(start.left, value);
         }
         else {
-            if (start.right == null) return start;
+            if (start.right == null)
+                return start;
             return find(start.right, value);
         }
     }
+
+    private Node<T> findLess(Node<T> start) {
+        T val = start.value;
+        if (start == root) {
+            if (root.right !=null)
+                return root.right;
+            return null;
+        }
+        int comparison = val.compareTo(start.prev.value);
+        if (start.right != null)
+            return find(start.right, val);
+        if (comparison > 0) {///////////
+            return find(start.prev, val);
+        }
+        return null;
+    }
+
 
     @Override
     public boolean contains(Object o) {
@@ -235,14 +288,21 @@ public class BinarySearchTree<T extends Comparable<T>> extends AbstractSet<T> im
                 throw new NoSuchElementException();
             lastReturned = next;
             T r = lastReturned.value;
+            //next = findWithoutEquals(next);
             if(next == root)
                 next = next.right;
             else if(next.right != null)
                 next = find(next.right, r);
-            else if(next.prev != null)
-                next = find(next.prev, r);
-            if (next.value.compareTo(r) <= 0)
+            else {
+                while (next.prev != null) {
+                    if (next.prev.left == next) {
+                        next = next.prev;
+                        return r;
+                    }
+                    next = next.prev;
+                }
                 next = null;
+            }
             return r;
         }
 
@@ -286,8 +346,11 @@ public class BinarySearchTree<T extends Comparable<T>> extends AbstractSet<T> im
     @NotNull
     @Override
     public SortedSet<T> subSet(T fromElement, T toElement) {
-        // TODO
-        throw new NotImplementedError();
+        if (fromElement == null || toElement == null) throw new NullPointerException();
+        int comp = fromElement.compareTo(toElement);
+        if (comp > 0) throw new IllegalArgumentException();
+        return this;
+
     }
 
     /**
