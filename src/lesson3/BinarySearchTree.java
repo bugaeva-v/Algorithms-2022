@@ -10,11 +10,13 @@ public class BinarySearchTree<T extends Comparable<T>> extends AbstractSet<T> im
 
     private static class Node<T> {
         final T value;
+        Node<T> prev = null;
         Node<T> left = null;
         Node<T> right = null;
 
-        Node(T value) {
+        Node(T value, Node<T> prev) {
             this.value = value;
+            this.prev = prev;
         }
     }
 
@@ -72,7 +74,7 @@ public class BinarySearchTree<T extends Comparable<T>> extends AbstractSet<T> im
         if (comparison == 0) {
             return false;
         }
-        Node<T> newNode = new Node<>(t);
+        Node<T> newNode = new Node<>(t, closest);
         if (closest == null) {
             root = newNode;
         }
@@ -99,10 +101,77 @@ public class BinarySearchTree<T extends Comparable<T>> extends AbstractSet<T> im
      *
      * Средняя
      */
+
+    // T=O(n)
+    //R = O(1)
     @Override
     public boolean remove(Object o) {
-        // TODO
-        throw new NotImplementedError();
+        @SuppressWarnings("unchecked")
+        T t = (T) o;
+
+        Node<T> removed = find(t);
+        int comparison = removed == null ? -1 : t.compareTo(removed.value);
+        if (comparison != 0) {
+            return false;
+        }
+        if (removed.left == null && removed.right == null) {//случай удаления узла без листьев
+            if (removed.prev == null)
+                root = null;
+            else if (removed == removed.prev.left)
+                removed.prev.left = null;
+            else
+                removed.prev.right = null;
+        } else if (removed.left == null) {//случай удаления узла без левого листа
+            removed.right.prev = removed.prev;
+            if (removed.prev == null)
+                root = removed.right;
+            else if (removed == removed.prev.left)
+                removed.prev.left = removed.right;
+            else
+                removed.prev.right = removed.right;
+        } else if (removed.right == null) {//случай удаления узла без правого листа
+            removed.left.prev = removed.prev;
+            if (removed.prev == null)
+                root = removed.left;
+            else if (removed == removed.prev.left)
+                removed.prev.left = removed.left;
+            else
+                removed.prev.right = removed.left;
+        } else {//удаление узла, имеющего оба листа
+            Node<T> replacement = find(removed.right, removed.value);
+
+            if (replacement.right == null) {//случай замены узла на узел без листов; ссылка из предыдущего узла на узел-замену = null
+                if (replacement.prev == removed) {
+                    if (replacement == removed.left)
+                        removed.left = null;
+                    else
+                        removed.right = null;
+                } else replacement.prev.left = null;
+            } else {//случай, когда у выбранного для замены узла есть правый лист
+                if (replacement.prev == removed)//ссылке на один из листов предыдущего узла по отношению к заменяемому , присваивается ссылка на правый лист узла-замены
+                    removed.right = replacement.right;
+                else
+                    replacement.prev.left = replacement.right;
+                replacement.right.prev = replacement.prev;//ссылке на предыдущую ячейку правого листа заменяющего узла присваивается ссылка на узел предыдущий по отношению к заменяемому
+            }
+            replacement.right = removed.right;// замена ссылок в узле-замене
+            replacement.left = removed.left;
+            replacement.prev = removed.prev;
+
+            if (replacement.right != null)// замена ссылки на предыдущий узел у листьев узла-замены
+                replacement.right.prev = replacement;
+            if (replacement.left != null)
+                replacement.left.prev = replacement;
+
+            if (removed.prev == null)// замена корневого узла
+                root = replacement;
+            else if (removed == removed.prev.left)// либо замена ссылки на один из листьев у узда предыдущего перед удаляемым узлом
+                removed.prev.left = replacement;
+            else
+                removed.prev.right = replacement;
+        }
+        size--;
+        return true;
     }
 
     @Nullable
@@ -119,8 +188,17 @@ public class BinarySearchTree<T extends Comparable<T>> extends AbstractSet<T> im
 
     public class BinarySearchTreeIterator implements Iterator<T> {
 
+        private Node<T> next;
+        private Node<T> lastReturned = null;
+
         private BinarySearchTreeIterator() {
-            // Добавьте сюда инициализацию, если она необходима.
+            if (root == null) next = null;
+            else {
+                Node<T> n = root;
+                while (n.left != null)
+                    n = n.left;
+                next = n;
+            }
         }
 
         /**
@@ -135,8 +213,7 @@ public class BinarySearchTree<T extends Comparable<T>> extends AbstractSet<T> im
          */
         @Override
         public boolean hasNext() {
-            // TODO
-            throw new NotImplementedError();
+            return next != null;
         }
 
         /**
@@ -154,8 +231,19 @@ public class BinarySearchTree<T extends Comparable<T>> extends AbstractSet<T> im
          */
         @Override
         public T next() {
-            // TODO
-            throw new NotImplementedError();
+            if (!hasNext())
+                throw new NoSuchElementException();
+            lastReturned = next;
+            T r = lastReturned.value;
+            if(next == root)
+                next = next.right;
+            else if(next.right != null)
+                next = find(next.right, r);
+            else if(next.prev != null)
+                next = find(next.prev, r);
+            if (next.value.compareTo(r) <= 0)
+                next = null;
+            return r;
         }
 
         /**
@@ -172,8 +260,10 @@ public class BinarySearchTree<T extends Comparable<T>> extends AbstractSet<T> im
          */
         @Override
         public void remove() {
-            // TODO
-            throw new NotImplementedError();
+            if (lastReturned == null)
+                throw new IllegalStateException();
+            BinarySearchTree.this.remove(lastReturned.value);
+            lastReturned = null;
         }
     }
 

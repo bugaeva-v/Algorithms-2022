@@ -3,6 +3,9 @@ package lesson2;
 import kotlin.NotImplementedError;
 import kotlin.Pair;
 
+import java.util.ArrayList;
+import java.util.List;
+
 @SuppressWarnings("unused")
 public class JavaAlgorithms {
     /**
@@ -97,8 +100,33 @@ public class JavaAlgorithms {
      * Если имеется несколько самых длинных общих подстрок одной длины,
      * вернуть ту из них, которая встречается раньше в строке first.
      */
-    static public String longestCommonSubstring(String firs, String second) {
-        throw new NotImplementedError();
+
+    //T = O(n^2)
+    //R = O(n^2)
+    //  r t y u b n b p
+    //t 0 1 0 0 0 0 0 0
+    //u 0 0 0 1 0 0 0 0
+    //b 0 0 0 0 2 0 1 0
+    //n 0 0 0 0 0 3 0 0
+    //r 1 0 0 0 0 0 0 0
+    //i 0 0 0 0 0 0 0 0
+    static public String longestCommonSubstring(String first, String second) {
+        int[][] m = new int[first.length()][second.length()];
+        int n_res = 0;
+        int iEndRes = -1;
+        for (int i = 0; i < first.length(); i++)
+            for (int j = 0; j < second.length(); j++)
+                if (first.charAt(i) == second.charAt(j)) {
+                    if (i == 0 || j == 0) m[i][j] = 1;
+                    else m[i][j] = m[i - 1][j - 1] + 1;
+                    if (m[i][j] > n_res) {
+                        n_res = m[i][j];
+                        iEndRes = i;
+                    }
+                }
+        if (iEndRes < 0) return "";
+        iEndRes++;
+        return first.substring(iEndRes - n_res, iEndRes);
     }
 
     /**
@@ -111,7 +139,20 @@ public class JavaAlgorithms {
      * Справка: простым считается число, которое делится нацело только на 1 и на себя.
      * Единица простым числом не считается.
      */
+
+    // T = O(n ln ln n)
+    // R = O(n)
+    //алгоритм основан на решете Эратосфена
     static public int calcPrimesNumber(int limit) {
-        throw new NotImplementedError();
+        if (limit < 2) return 0;
+        int[] m = new int[limit + 1];
+        for (int i = 2; i * i <= limit; i++)
+            if (m[i] == 0)
+                for (int j = i * i; j <= limit; j += i)
+                    m[j] = 1;
+        int res = 0;
+        for (int i = 0; i <= limit; i++) res += m[i];
+        res = limit - res - 1;
+        return res;
     }
 }

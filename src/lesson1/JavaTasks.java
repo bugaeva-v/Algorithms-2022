@@ -4,6 +4,7 @@ import kotlin.NotImplementedError;
 import org.jetbrains.annotations.NotNull;
 
 import java.io.*;
+import java.nio.charset.StandardCharsets;
 import java.util.*;
 
 @SuppressWarnings("unused")
@@ -69,7 +70,8 @@ public class JavaTasks {
      * В случае обнаружения неверного формата файла бросить любое исключение.
      */
 
-
+    //T = O(n)
+    //R = O(n)
     static public void sortAddresses(String inputName, String outputName) throws IOException {
 
         class Address implements Comparable<Address>{
@@ -84,33 +86,34 @@ public class JavaTasks {
             @Override
             public int compareTo(@NotNull Address o) {
                 int comp = street.compareTo(o.street);
-                if(comp == 0) comp = o.h.compareTo(h);
+                if(comp == 0) comp = h.compareTo(o.h);
                 return comp;
             }
+
+            @Override
+            public String toString() { return street + " " + h + " - "; }
         }
 
         File inp = new File(inputName);
         if(!inp.isFile()) throw new FileNotFoundException("");
-        BufferedReader read = new BufferedReader(new FileReader(inp));
+        BufferedReader read = new BufferedReader(new FileReader(inp, StandardCharsets.UTF_8));
         List<Integer> list = new ArrayList<>();
         String line;
         TreeMap<Address, List<String>> m = new TreeMap<>();
         while ((line = read.readLine()) != null) {
             String[] t = line.split(" +");
-            if (t.length != 5)
-                throw new InvalidPropertiesFormatException("Неправильный формат строки: \"" + line + "\"\n");
+            if (t.length != 5 || !t[2].equals("-"))
+                throw new IOException("Неправильный формат строки: \"" + line + "\"\n");
             Address a = new Address(t[3],Integer.parseInt(t[4]));
             m.computeIfAbsent(a, k -> new ArrayList<>()).add(t[0] + " " + t[1]);
         }
         read.close();
         Map.Entry <Address, List<String>> pair;
-        BufferedWriter writer = new BufferedWriter(new FileWriter(outputName));
-        //System.out.println("ИЙЦУКЕНГШЩЗХЪЭЖДЛОРПАВЫФЯЧСМИТЬБЮЁ");
-        //writer.write("Ж");
-        while ((pair = m.pollLastEntry()) != null){
+        FileWriter writer = new FileWriter(outputName, StandardCharsets.UTF_8);
+       while ((pair = m.pollFirstEntry()) != null){
             writer.write(pair.getKey().street + " " + pair.getKey().h + " - ");
-            //for (String i : pair.getValue())
-            writer.write(String.join(", ", pair.getValue()) + "\n");
+            Collections.sort(pair.getValue());
+            writer.write(String.join(", ", pair.getValue())+ "\n");
         }
         writer.close();
     }
@@ -148,7 +151,6 @@ public class JavaTasks {
 
     //T = O(n)
     //R = O(n)
-
     static public void sortTemperatures(String inputName, String outputName) throws IOException {
         File inp = new File(inputName);
         if(!inp.isFile()) throw new FileNotFoundException("");
