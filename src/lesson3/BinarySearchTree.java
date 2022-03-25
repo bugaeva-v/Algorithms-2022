@@ -17,7 +17,7 @@ public class BinarySearchTree<T extends Comparable<T>> extends AbstractSet<T> im
 
     private static class Node<T> {
         final T value;
-        Node<T> prev = null;
+        Node<T> prev;
         Node<T> left = null;
         Node<T> right = null;
 
@@ -29,37 +29,20 @@ public class BinarySearchTree<T extends Comparable<T>> extends AbstractSet<T> im
 
     private Node<T> root = null;
 
-    private int size = 0;
+    //private int size = 0;
 
     private T nodeStart =null;
     private T nodeEnd =null;
 
     @Override
     public int size() {
-        /*int size = 0;
-        Node<T> n = root;
-        while (n.left!=null) {
-            n = n.left;
-            while (n.right!=null) {
-                n = n.right;
-            }
 
-        }
+        if (root == null) return 0;
+        int size = 0;
 
-
-        while (n.left!=null) {
-            while (n.prev.right == n) {
-                n=n.prev;
-            }
-            n = n.left;
-        }
-
-        Iterator<T> it = iterator();
-
-        while (it.hasNext()) {
-            it.next();
+        for (T t : this) {
             size++;
-        }*/
+        }
         return size;
     }
 
@@ -139,7 +122,7 @@ public class BinarySearchTree<T extends Comparable<T>> extends AbstractSet<T> im
             assert closest.right == null;
             closest.right = newNode;
         }
-        size++;
+        //size++;
         return true;
     }
 
@@ -223,7 +206,7 @@ public class BinarySearchTree<T extends Comparable<T>> extends AbstractSet<T> im
             else
                 removed.prev.right = replacement;
         }
-        size--;
+        //size--;
         return true;
     }
 
@@ -286,24 +269,21 @@ public class BinarySearchTree<T extends Comparable<T>> extends AbstractSet<T> im
         public T next() {
             if (!hasNext())
                 throw new NoSuchElementException();
-            lastReturned = next;
-            T r = lastReturned.value;
             //next = findWithoutEquals(next);
-            if(next == root)
-                next = next.right;
-            else if(next.right != null)
-                next = find(next.right, r);
+            lastReturned = next;
+            if(next.right != null)
+                next = find(next.right, next.value);
             else {
                 while (next.prev != null) {
                     if (next.prev.left == next) {
                         next = next.prev;
-                        return r;
+                        return lastReturned.value;
                     }
                     next = next.prev;
                 }
                 next = null;
             }
-            return r;
+            return lastReturned.value;
         }
 
         /**
