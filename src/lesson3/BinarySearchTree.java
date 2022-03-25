@@ -9,10 +9,10 @@ import org.jetbrains.annotations.Nullable;
 public class BinarySearchTree<T extends Comparable<T>> extends AbstractSet<T> implements CheckableSortedSet<T> {
 
     BinarySearchTree() {}
-    BinarySearchTree(BinarySearchTree<T> tree, T start, T end) {
+    BinarySearchTree(BinarySearchTree<T> tree, T s, T e) {
         root = tree.root;
-        nodeStart = start;
-        nodeEnd = end;
+        start = s;
+        end = e;
     }
 
     private static class Node<T> {
@@ -31,8 +31,8 @@ public class BinarySearchTree<T extends Comparable<T>> extends AbstractSet<T> im
 
     //private int size = 0;
 
-    private T nodeStart =null;
-    private T nodeEnd =null;
+    private T start =null;
+    private T end =null;
 
     @Override
     public int size() {
@@ -68,27 +68,21 @@ public class BinarySearchTree<T extends Comparable<T>> extends AbstractSet<T> im
         }
     }
 
-    private Node<T> findLess(Node<T> start) {
-        T val = start.value;
-        if (start == root) {
-            if (root.right !=null)
-                return root.right;
-            return null;
-        }
-        int comparison = val.compareTo(start.prev.value);
-        if (start.right != null)
-            return find(start.right, val);
-        if (comparison > 0) {///////////
-            return find(start.prev, val);
-        }
-        return null;
+    public boolean meetTheLimits(T t) {
+        return (start == null ||t.compareTo(start) >= 0) && (end == null || t.compareTo(end) < 0);
     }
-
+    public boolean meetTheRightLimit(T t) {
+        return (end == null || t.compareTo(end) < 0);
+    }
+    public boolean meetTheLeftLimit(T t) {
+        return (start == null ||t.compareTo(start) >= 0);
+    }
 
     @Override
     public boolean contains(Object o) {
         @SuppressWarnings("unchecked")
         T t = (T) o;
+        if (!meetTheLimits(t)) return false;
         Node<T> closest = find(t);
         return closest != null && t.compareTo(closest.value) == 0;
     }
@@ -105,6 +99,8 @@ public class BinarySearchTree<T extends Comparable<T>> extends AbstractSet<T> im
      */
     @Override
     public boolean add(T t) {
+
+        if (!meetTheLimits(t)) throw new IllegalArgumentException();
         Node<T> closest = find(t);
         int comparison = closest == null ? -1 : t.compareTo(closest.value);
         if (comparison == 0) {
@@ -145,6 +141,7 @@ public class BinarySearchTree<T extends Comparable<T>> extends AbstractSet<T> im
         @SuppressWarnings("unchecked")
         T t = (T) o;
 
+        if (!meetTheLimits(t)) throw new IllegalArgumentException();
         Node<T> removed = find(t);
         int comparison = removed == null ? -1 : t.compareTo(removed.value);
         if (comparison != 0) {
@@ -228,12 +225,22 @@ public class BinarySearchTree<T extends Comparable<T>> extends AbstractSet<T> im
         private Node<T> lastReturned = null;
 
         private BinarySearchTreeIterator() {
-            if (root == null) next = null;
-            else {
+            if (root == null) {
+                next = null;
+                return;
+            } else {
                 Node<T> n = root;
                 while (n.left != null)
                     n = n.left;
                 next = n;
+            }
+            if (!meetTheRightLimit(next.value)) {
+                next=null;
+                return;
+            }
+            while (!meetTheLeftLimit(next.value)) {
+                this.next();
+                lastReturned = null;
             }
         }
 
@@ -277,10 +284,16 @@ public class BinarySearchTree<T extends Comparable<T>> extends AbstractSet<T> im
                 while (next.prev != null) {
                     if (next.prev.left == next) {
                         next = next.prev;
+                        if (!meetTheRightLimit(next.value)) {
+                            next = null;
+                        }
                         return lastReturned.value;
                     }
                     next = next.prev;
                 }
+                next = null;
+            }
+            if (!meetTheRightLimit(next.value)) {
                 next = null;
             }
             return lastReturned.value;
@@ -329,8 +342,7 @@ public class BinarySearchTree<T extends Comparable<T>> extends AbstractSet<T> im
         if (fromElement == null || toElement == null) throw new NullPointerException();
         int comp = fromElement.compareTo(toElement);
         if (comp > 0) throw new IllegalArgumentException();
-        return this;
-
+        return new BinarySearchTree<T>(this, fromElement, toElement);
     }
 
     /**
@@ -377,21 +389,24 @@ public class BinarySearchTree<T extends Comparable<T>> extends AbstractSet<T> im
 
     @Override
     public T first() {
-        if (root == null) throw new NoSuchElementException();
+        if (root == null)
+            throw new NoSuchElementException();
         Node<T> current = root;
-        while (current.left != null) {
+        while (current.left != null && meetTheLeftLimit(current.left.value)) {
             current = current.left;
         }
-        return current.value;
+        if(!meetTheLimits(current.value)) throw new NoSuchElementException();
+        return  current.value;
     }
 
     @Override
     public T last() {
         if (root == null) throw new NoSuchElementException();
         Node<T> current = root;
-        while (current.right != null) {
+        while (current.right != null && meetTheRightLimit(current.right.value)) {
             current = current.right;
         }
+        if(!meetTheLimits(current.value)) throw new NoSuchElementException();
         return current.value;
     }
 
