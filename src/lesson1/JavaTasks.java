@@ -70,7 +70,7 @@ public class JavaTasks {
      * В случае обнаружения неверного формата файла бросить любое исключение.
      */
 
-    //T = O(n)
+    //T = O(n^2)
     //R = O(n)
     static public void sortAddresses(String inputName, String outputName) throws IOException {
 
@@ -94,28 +94,27 @@ public class JavaTasks {
             public String toString() { return street + " " + h + " - "; }
         }
 
-        File inp = new File(inputName);
-        if(!inp.isFile()) throw new FileNotFoundException("");
-        BufferedReader read = new BufferedReader(new FileReader(inp, StandardCharsets.UTF_8));
-        List<Integer> list = new ArrayList<>();
-        String line;
-        TreeMap<Address, List<String>> m = new TreeMap<>();
-        while ((line = read.readLine()) != null) {
-            String[] t = line.split(" +");
-            if (t.length != 5 || !t[2].equals("-"))
-                throw new IOException("Неправильный формат строки: \"" + line + "\"\n");
-            Address a = new Address(t[3],Integer.parseInt(t[4]));
-            m.computeIfAbsent(a, k -> new ArrayList<>()).add(t[0] + " " + t[1]);
+        try( FileReader f  = new FileReader(inputName, StandardCharsets.UTF_8)) {
+            BufferedReader read = new BufferedReader(f);
+            List<Integer> list = new ArrayList<>();
+            String line;
+            TreeMap<Address, List<String>> m = new TreeMap<>();
+            while ((line = read.readLine()) != null) {
+                String[] t = line.split(" +");
+                if (t.length != 5 || !t[2].equals("-"))
+                    throw new IOException("Неправильный формат строки: \"" + line + "\"\n");
+                Address a = new Address(t[3], Integer.parseInt(t[4]));
+                m.computeIfAbsent(a, k -> new ArrayList<>()).add(t[0] + " " + t[1]);
+            }
+            Map.Entry<Address, List<String>> pair;
+            try(FileWriter writer = new FileWriter(outputName, StandardCharsets.UTF_8)) {
+                while ((pair = m.pollFirstEntry()) != null) {
+                    writer.write(pair.getKey().street + " " + pair.getKey().h + " - ");
+                    Collections.sort(pair.getValue());
+                    writer.write(String.join(", ", pair.getValue()) + "\n");
+                }
+            }
         }
-        read.close();
-        Map.Entry <Address, List<String>> pair;
-        FileWriter writer = new FileWriter(outputName, StandardCharsets.UTF_8);
-       while ((pair = m.pollFirstEntry()) != null){
-            writer.write(pair.getKey().street + " " + pair.getKey().h + " - ");
-            Collections.sort(pair.getValue());
-            writer.write(String.join(", ", pair.getValue())+ "\n");
-        }
-        writer.close();
     }
 
     /**

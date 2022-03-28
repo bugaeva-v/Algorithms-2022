@@ -14,6 +14,7 @@ public class BinarySearchTree<T extends Comparable<T>> extends AbstractSet<T> im
 
     private T minValue = null;
     private T maxValue = null;
+    final private Integer size = null;
 
     BinarySearchTree() {
         root = new Node<>(null, null);
@@ -40,11 +41,11 @@ public class BinarySearchTree<T extends Comparable<T>> extends AbstractSet<T> im
     @Override
     public int size() {
         if (root.value == null) return 0;
+        Iterator<T> it = iterator();
         int size = 0;
-        try {
-            for (T ignored : this) size++;
-        } catch (NullPointerException e) {
-            size = 0;
+        while (it.hasNext()) {
+            it.next();
+            size++;
         }
         return size;
     }
@@ -238,6 +239,8 @@ public class BinarySearchTree<T extends Comparable<T>> extends AbstractSet<T> im
         private Node<T> next;
         private Node<T> lastReturned = null;
 
+        //T = O(n)
+        //R = O(1)
         private BinarySearchTreeIterator() {
             if (root.value == null) {
                 next = null;
@@ -290,6 +293,8 @@ public class BinarySearchTree<T extends Comparable<T>> extends AbstractSet<T> im
          * Средняя
          */
 
+        //for (i:iterable) {} : T = O(n)
+        //                      R = O(1)
         //T = O(n)
         //R = O(1)
         @Override
@@ -426,6 +431,9 @@ public class BinarySearchTree<T extends Comparable<T>> extends AbstractSet<T> im
         return t;
     }
 
+    //T = O(n), хоть в алгоритме и присутствует цикл в цикле, он не может пройтись более чем по n элементам в худшем случае,
+    //тк на каждой итерации алгоритм спускается вниз по дереву (current = current.right/left) и никогда не поднимается.
+    //R = O(1)
     @Override
     public T last() {
         if (root.value == null)

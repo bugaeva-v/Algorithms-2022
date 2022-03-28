@@ -101,8 +101,8 @@ public class JavaAlgorithms {
      * вернуть ту из них, которая встречается раньше в строке first.
      */
 
-    //T = O(n^2)
-    //R = O(n^2)
+    //T = O(n*m)
+    //R = O(n*m), где n и m длинны передаваемых строк
     //  r t y u b n b p
     //t 0 1 0 0 0 0 0 0
     //u 0 0 0 1 0 0 0 0
@@ -145,13 +145,15 @@ public class JavaAlgorithms {
     //алгоритм основан на решете Эратосфена
     static public int calcPrimesNumber(int limit) {
         if (limit < 2) return 0;
-        int[] m = new int[limit + 1];
+        boolean[] m = new boolean[limit + 1];
         for (int i = 2; i * i <= limit; i++)
-            if (m[i] == 0)
+            if (!m[i])
                 for (int j = i * i; j <= limit; j += i)
-                    m[j] = 1;
+                    m[j] = true;
         int res = 0;
-        for (int i = 0; i <= limit; i++) res += m[i];
+        for (int i = 0; i <= limit; i++)
+            if (m[i])
+                res++;
         res = limit - res - 1;
         return res;
     }
