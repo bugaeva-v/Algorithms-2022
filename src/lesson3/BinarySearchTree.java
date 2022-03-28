@@ -1,6 +1,7 @@
 package lesson3;
 
 import java.util.*;
+
 import kotlin.NotImplementedError;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -8,15 +9,24 @@ import org.jetbrains.annotations.Nullable;
 // attention: Comparable is supported but Comparator is not
 public class BinarySearchTree<T extends Comparable<T>> extends AbstractSet<T> implements CheckableSortedSet<T> {
 
-    BinarySearchTree() {}
-    BinarySearchTree(BinarySearchTree<T> tree, T s, T e) {
+
+    private final Node<T> root;
+
+    private T minValue = null;
+    private T maxValue = null;
+
+    BinarySearchTree() {
+        root = new Node<>(null, null);
+    }
+
+    BinarySearchTree(BinarySearchTree<T> tree, T min, T max) {
         root = tree.root;
-        start = s;
-        end = e;
+        minValue = min;
+        maxValue = max;
     }
 
     private static class Node<T> {
-        final T value;
+        T value;
         Node<T> prev;
         Node<T> left = null;
         Node<T> right = null;
@@ -27,27 +37,20 @@ public class BinarySearchTree<T extends Comparable<T>> extends AbstractSet<T> im
         }
     }
 
-    private Node<T> root = null;
-
-    //private int size = 0;
-
-    private T start =null;
-    private T end =null;
-
     @Override
     public int size() {
-
-        if (root == null) return 0;
+        if (root.value == null) return 0;
         int size = 0;
-
-        for (T t : this) {
-            size++;
+        try {
+            for (T ignored : this) size++;
+        } catch (NullPointerException e) {
+            size = 0;
         }
         return size;
     }
 
     private Node<T> find(T value) {
-        if (root == null) return null;
+        if (root.value == null) return null;
         return find(root, value);
     }
 
@@ -55,34 +58,34 @@ public class BinarySearchTree<T extends Comparable<T>> extends AbstractSet<T> im
         int comparison = value.compareTo(start.value);
         if (comparison == 0) {
             return start;
-        }
-        else if (comparison < 0) {
+        } else if (comparison < 0) {
             if (start.left == null)
                 return start;
             return find(start.left, value);
-        }
-        else {
+        } else {
             if (start.right == null)
                 return start;
             return find(start.right, value);
         }
     }
 
-    public boolean meetTheLimits(T t) {
-        return (start == null ||t.compareTo(start) >= 0) && (end == null || t.compareTo(end) < 0);
+    public boolean outOfTheLimits(T t) {
+        return (minValue != null && t.compareTo(minValue) < 0) || (maxValue != null && t.compareTo(maxValue) >= 0);
     }
+
     public boolean meetTheRightLimit(T t) {
-        return (end == null || t.compareTo(end) < 0);
+        return (maxValue == null || t.compareTo(maxValue) < 0);
     }
+
     public boolean meetTheLeftLimit(T t) {
-        return (start == null ||t.compareTo(start) >= 0);
+        return (minValue == null || t.compareTo(minValue) >= 0);
     }
 
     @Override
     public boolean contains(Object o) {
         @SuppressWarnings("unchecked")
         T t = (T) o;
-        if (!meetTheLimits(t)) return false;
+        if (outOfTheLimits(t)) return false;
         Node<T> closest = find(t);
         return closest != null && t.compareTo(closest.value) == 0;
     }
@@ -99,8 +102,7 @@ public class BinarySearchTree<T extends Comparable<T>> extends AbstractSet<T> im
      */
     @Override
     public boolean add(T t) {
-
-        if (!meetTheLimits(t)) throw new IllegalArgumentException();
+        if (outOfTheLimits(t)) throw new IllegalArgumentException();
         Node<T> closest = find(t);
         int comparison = closest == null ? -1 : t.compareTo(closest.value);
         if (comparison == 0) {
@@ -108,17 +110,14 @@ public class BinarySearchTree<T extends Comparable<T>> extends AbstractSet<T> im
         }
         Node<T> newNode = new Node<>(t, closest);
         if (closest == null) {
-            root = newNode;
-        }
-        else if (comparison < 0) {
+            root.value = t;
+        } else if (comparison < 0) {
             assert closest.left == null;
             closest.left = newNode;
-        }
-        else {
+        } else {
             assert closest.right == null;
             closest.right = newNode;
         }
-        //size++;
         return true;
     }
 
@@ -134,14 +133,15 @@ public class BinarySearchTree<T extends Comparable<T>> extends AbstractSet<T> im
      * Средняя
      */
 
-    // T=O(n)
+    //T = O(n)
     //R = O(1)
     @Override
     public boolean remove(Object o) {
         @SuppressWarnings("unchecked")
         T t = (T) o;
 
-        if (!meetTheLimits(t)) throw new IllegalArgumentException();
+        if (outOfTheLimits(t))
+            throw new IllegalArgumentException();
         Node<T> removed = find(t);
         int comparison = removed == null ? -1 : t.compareTo(removed.value);
         if (comparison != 0) {
@@ -149,31 +149,48 @@ public class BinarySearchTree<T extends Comparable<T>> extends AbstractSet<T> im
         }
         if (removed.left == null && removed.right == null) {//случай удаления узла без листьев
             if (removed.prev == null)
-                root = null;
+                root.value = null;
             else if (removed == removed.prev.left)
                 removed.prev.left = null;
             else
                 removed.prev.right = null;
         } else if (removed.left == null) {//случай удаления узла без левого листа
             removed.right.prev = removed.prev;
-            if (removed.prev == null)
-                root = removed.right;
-            else if (removed == removed.prev.left)
+            if (removed.prev == null) {
+                root.value = root.right.value;
+                if (root.right.left != null) root.right.left.prev = root;
+                if (root.right.right != null) root.right.right.prev = root;
+                root.left = root.right.left;
+                root.right = root.right.right;
+            } else if (removed == removed.prev.left)
                 removed.prev.left = removed.right;
             else
                 removed.prev.right = removed.right;
         } else if (removed.right == null) {//случай удаления узла без правого листа
             removed.left.prev = removed.prev;
-            if (removed.prev == null)
-                root = removed.left;
-            else if (removed == removed.prev.left)
+            if (removed.prev == null) {
+                root.value = root.left.value;
+                if (root.left.left != null) root.left.left.prev = root;
+                if (root.left.right != null) root.left.right.prev = root;
+                root.right = root.left.right;
+                root.left = root.left.left;
+            } else if (removed == removed.prev.left)
                 removed.prev.left = removed.left;
             else
                 removed.prev.right = removed.left;
         } else {//удаление узла, имеющего оба листа
             Node<T> replacement = find(removed.right, removed.value);
+            if (removed.prev == null)// удаление корневого узла
+            {
+                root.value = replacement.value;
+                if (replacement.prev.left == replacement) replacement.prev.left = replacement.right;
+                else replacement.prev.right = replacement.right;
+                if (replacement.right != null) replacement.right.prev = replacement.prev;
+                replacement.prev = null;
+                return true;
+            }
 
-            if (replacement.right == null) {//случай замены узла на узел без листов; ссылка из предыдущего узла на узел-замену = null
+            if (replacement.right == null) {//случай замены узла на узел без листов
                 if (replacement.prev == removed) {
                     if (replacement == removed.left)
                         removed.left = null;
@@ -181,7 +198,7 @@ public class BinarySearchTree<T extends Comparable<T>> extends AbstractSet<T> im
                         removed.right = null;
                 } else replacement.prev.left = null;
             } else {//случай, когда у выбранного для замены узла есть правый лист
-                if (replacement.prev == removed)//ссылке на один из листов предыдущего узла по отношению к заменяемому , присваивается ссылка на правый лист узла-замены
+                if (replacement.prev == removed)//ссылке на один из листов предыдущего узла по отношению к заменяемому, присваивается ссылка на правый лист узла-замены
                     removed.right = replacement.right;
                 else
                     replacement.prev.left = replacement.right;
@@ -196,14 +213,11 @@ public class BinarySearchTree<T extends Comparable<T>> extends AbstractSet<T> im
             if (replacement.left != null)
                 replacement.left.prev = replacement;
 
-            if (removed.prev == null)// замена корневого узла
-                root = replacement;
-            else if (removed == removed.prev.left)// либо замена ссылки на один из листьев у узда предыдущего перед удаляемым узлом
+            if (removed == removed.prev.left)// либо замена ссылки на один из листьев у узда предыдущего перед удаляемым узлом
                 removed.prev.left = replacement;
             else
                 removed.prev.right = replacement;
         }
-        //size--;
         return true;
     }
 
@@ -225,7 +239,7 @@ public class BinarySearchTree<T extends Comparable<T>> extends AbstractSet<T> im
         private Node<T> lastReturned = null;
 
         private BinarySearchTreeIterator() {
-            if (root == null) {
+            if (root.value == null) {
                 next = null;
                 return;
             } else {
@@ -235,13 +249,13 @@ public class BinarySearchTree<T extends Comparable<T>> extends AbstractSet<T> im
                 next = n;
             }
             if (!meetTheRightLimit(next.value)) {
-                next=null;
+                next = null;
                 return;
             }
-            while (!meetTheLeftLimit(next.value)) {
-                this.next();
-                lastReturned = null;
+            while (next != null && !meetTheLeftLimit(next.value)) {
+                next();
             }
+            lastReturned = null;
         }
 
         /**
@@ -254,6 +268,9 @@ public class BinarySearchTree<T extends Comparable<T>> extends AbstractSet<T> im
          *
          * Средняя
          */
+
+        //T = O(1)
+        //R = O(1)
         @Override
         public boolean hasNext() {
             return next != null;
@@ -272,28 +289,28 @@ public class BinarySearchTree<T extends Comparable<T>> extends AbstractSet<T> im
          *
          * Средняя
          */
+
+        //T = O(n)
+        //R = O(1)
         @Override
         public T next() {
             if (!hasNext())
                 throw new NoSuchElementException();
-            //next = findWithoutEquals(next);
             lastReturned = next;
-            if(next.right != null)
+            if (next.right != null) {
                 next = find(next.right, next.value);
-            else {
+                if (!meetTheRightLimit(next.value)) {
+                    next = null;
+                }
+            } else {
                 while (next.prev != null) {
                     if (next.prev.left == next) {
-                        next = next.prev;
-                        if (!meetTheRightLimit(next.value)) {
-                            next = null;
-                        }
+                        if (!meetTheRightLimit(next.prev.value)) next = null;
+                        else next = next.prev;
                         return lastReturned.value;
                     }
                     next = next.prev;
                 }
-                next = null;
-            }
-            if (!meetTheRightLimit(next.value)) {
                 next = null;
             }
             return lastReturned.value;
@@ -311,11 +328,18 @@ public class BinarySearchTree<T extends Comparable<T>> extends AbstractSet<T> im
          *
          * Сложная
          */
+
+        //T = O(n)
+        //R = O(1)
         @Override
         public void remove() {
             if (lastReturned == null)
                 throw new IllegalStateException();
+            Node<T> prevLastReturned = lastReturned.prev;
             BinarySearchTree.this.remove(lastReturned.value);
+            if (prevLastReturned == null && next != null && next.prev == null) {// случай, когда удаляется root, а заменяющим узлом выбран next
+                next = root;
+            }
             lastReturned = null;
         }
     }
@@ -336,13 +360,18 @@ public class BinarySearchTree<T extends Comparable<T>> extends AbstractSet<T> im
      *
      * Очень сложная (в том случае, если спецификация реализуется в полном объёме)
      */
+
+    //T = O(1)
+    //R = O(1)
     @NotNull
     @Override
     public SortedSet<T> subSet(T fromElement, T toElement) {
         if (fromElement == null || toElement == null) throw new NullPointerException();
         int comp = fromElement.compareTo(toElement);
         if (comp > 0) throw new IllegalArgumentException();
-        return new BinarySearchTree<T>(this, fromElement, toElement);
+        if (outOfTheLimits(fromElement) || maxValue != null && toElement.compareTo(maxValue) > 0)
+            throw new IllegalArgumentException();
+        return new BinarySearchTree<>(this, fromElement, toElement);
     }
 
     /**
@@ -389,25 +418,45 @@ public class BinarySearchTree<T extends Comparable<T>> extends AbstractSet<T> im
 
     @Override
     public T first() {
-        if (root == null)
+        if (root.value == null)
             throw new NoSuchElementException();
-        Node<T> current = root;
-        while (current.left != null && meetTheLeftLimit(current.left.value)) {
-            current = current.left;
-        }
-        if(!meetTheLimits(current.value)) throw new NoSuchElementException();
-        return  current.value;
+        Iterator<T> i = iterator();
+        T t = i.next();
+        if (t == null) throw new NoSuchElementException();
+        return t;
     }
 
     @Override
     public T last() {
-        if (root == null) throw new NoSuchElementException();
+        if (root.value == null)
+            throw new NoSuchElementException();
+
         Node<T> current = root;
-        while (current.right != null && meetTheRightLimit(current.right.value)) {
-            current = current.right;
+        T res = current.value;
+        while (current.left != null || current.right != null) {
+            while (current.right != null && meetTheRightLimit(current.value)) {
+                current = current.right;
+            }
+            if (current.value != res) res = current.prev.value;
+            if (!meetTheRightLimit(current.value)) {
+                while (current.left != null && !meetTheRightLimit(current.value)) {
+                    current = current.left;
+                }
+                if (meetTheRightLimit(current.value)) res = current.value;
+                else {
+                    if (outOfTheLimits(res))
+                        throw new NoSuchElementException();
+                    return res;
+                }
+            } else {
+                if (outOfTheLimits(current.value))
+                    throw new NoSuchElementException();
+                return current.value;
+            }
         }
-        if(!meetTheLimits(current.value)) throw new NoSuchElementException();
-        return current.value;
+        if (outOfTheLimits(res))
+            throw new NoSuchElementException();
+        return res;
     }
 
     public int height() {
@@ -415,12 +464,12 @@ public class BinarySearchTree<T extends Comparable<T>> extends AbstractSet<T> im
     }
 
     private int height(Node<T> node) {
-        if (node == null) return 0;
+        if (node == null || node.value == null) return 0;
         return 1 + Math.max(height(node.left), height(node.right));
     }
 
     public boolean checkInvariant() {
-        return root == null || checkInvariant(root);
+        return root.value == null || checkInvariant(root);
     }
 
     private boolean checkInvariant(Node<T> node) {
